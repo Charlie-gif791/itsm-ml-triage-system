@@ -53,11 +53,11 @@ def main():
     logger.info("Training classifier")
 
     config = {
-        "mode": "dev", # "smoke" | "dev"| "full"
+        "mode": "full", # "smoke" | "dev"| "full"
         "tokenizer_name": "sentence-transformers/all-MiniLM-L6-v2",
         "batch_size": 32, # 16 for "full"
         "learning_rate": 2e-5,
-        "num_epochs": 3, # 5 for "full"
+        "num_epochs": 5, # 5 for "full"
         "max_length": 128, # 256 for "full"
     }
     
