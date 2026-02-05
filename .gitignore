@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+
+# Virtual environments
+.venv/
+venv/
+env/
+conda/
+
+# OS
+.DS_Store
+
+# ML artifacts (generated)
+artifacts/
+models/
+*.pt
+*.npy
+*.ckpt
+
+# Logs
+*.log
+
+# Hugging Face cache (never commit)
+.cache/
+hf_cache/
