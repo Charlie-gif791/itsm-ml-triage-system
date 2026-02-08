@@ -53,7 +53,7 @@ def main():
     logger.info("Training classifier")
 
     config = {
-        "mode": "full", # "smoke" | "dev"| "full"
+        "mode": "smoke", # "smoke" | "dev"| "full"
         "tokenizer_name": "sentence-transformers/all-MiniLM-L6-v2",
         "batch_size": 32, # 16 for "full"
         "learning_rate": 2e-5,
@@ -79,12 +79,13 @@ def main():
     # --------------------------------------------------
     # 4. Export artifacts
     # --------------------------------------------------
-    logger.info("Exporting artifacts")
+    artifacts_dir = PROJECT_ROOT / "artifacts"
+    logger.info("Exporting artifacts %s", artifacts_dir)
 
     export_classifier_artifacts(
         model=model,
         label_map=label_map,
-        output_dir=PROJECT_ROOT / "artifacts"
+        output_dir=artifacts_dir,
     )
 
 

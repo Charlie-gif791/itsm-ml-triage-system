@@ -1,5 +1,4 @@
 # training/export_artifacts.py
-
 import json
 import logging
 from pathlib import Path
@@ -9,7 +8,6 @@ import torch
 import torch.nn as nn
 
 logger = logging.getLogger(__name__)
-
 
 def export_classifier_artifacts(
     model: nn.Module,
@@ -41,6 +39,9 @@ def export_classifier_artifacts(
     # 2. Save label map
     # --------------------------------------------------
     label_map_path = output_dir / "label_map.json"
+    if label_map_path.exists():
+        logger.warning("Overwriting existing label_map.json")
+
     with open(label_map_path, "w") as f:
         json.dump(label_map, f, indent=2)
 

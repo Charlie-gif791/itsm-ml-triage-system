@@ -14,6 +14,7 @@ from transformers import AutoTokenizer
 
 from data.dataset import ITSMDataset
 from model.classifier import ITSMClassifier
+from training.labels import build_label_mapping, encode_labels
 
 logger = logging.getLogger(__name__)
 
@@ -22,22 +23,28 @@ def train_one_epoch(
     dataloader: DataLoader,
     optimizer: optim.Optimizer,
     device: torch.device,
+    criterion: nn.CrossEntropyLoss,
 ) -> float:
     model.train()
     total_loss = 0.0
 
     for batch in dataloader:
-        batch = {k: v.to(device) for k, v in batch.items()}
+        input_ids = batch["input_ids"].to(device)
+        attention_mask = batch["attention_mask"].to(device)
+        labels = batch["labels"].to(device)
 
         optimizer.zero_grad()
 
-        loss, logits = model(**batch)
+        logits = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+        )
 
+        loss = criterion(logits, labels)
         loss.backward()
         optimizer.step()
 
         total_loss += loss.item()
-
 
     return total_loss / len(dataloader)
 
@@ -72,17 +79,14 @@ def train_classifier(
     # --------------------------------------------------
     # 1. Encode labels
     # --------------------------------------------------
-    label_encoder = LabelEncoder()
-    y_train = label_encoder.fit_transform(train_df["label"])
-    y_val = label_encoder.transform(val_df["label"])
-
-    num_classes = len(label_encoder.classes_)
+    label_to_id, id_to_label = build_label_mapping(train_df["label"])
+    y_train = encode_labels(train_df["label"], label_to_id)
+    y_val = encode_labels(val_df["label"], label_to_id)
+    
+    num_classes = len(label_to_id)
     logger.info("Number of classes: %d", num_classes)
 
-    label_map = {
-        label: int(idx)
-        for idx, label in enumerate(label_encoder.classes_)
-    }
+    label_map = label_to_id
 
     # --------------------------------------------------
     # 2. Compute class weights
@@ -141,9 +145,10 @@ def train_classifier(
     model = ITSMClassifier(
         encoder=encoder,
         num_classes=num_classes,
-        class_weights=class_weights,
     ).to(device)
 
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    
     optimizer = optim.AdamW(
         model.parameters(),
         lr=config["learning_rate"],
@@ -160,6 +165,7 @@ def train_classifier(
             dataloader=train_loader,
             optimizer=optimizer,
             device=device,
+            criterion=criterion,
         )
 
         history.append(

@@ -17,7 +17,7 @@ class ITSMDataset(Dataset):
 
     def __init__(self, encodings: Dict[str, torch.Tensor], labels: np.ndarray):
         self.encodings = encodings
-        self.labels = labels
+        self.labels = np.asarray(labels)
 
     def __len__(self) -> int:
         return len(self.labels)

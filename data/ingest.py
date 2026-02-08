@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from data.schema import validate_schema
 from utils.logging import setup_logging
-from data.labels import build_label_mapping, encode_labels, save_label_mapping
+from training.labels import build_label_mapping, encode_labels, save_label_mapping
 from data.text import load_tokenizer, tokenize_texts
 
 logger = logging.getLogger(__name__)
