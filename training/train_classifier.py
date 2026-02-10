@@ -15,6 +15,7 @@ from transformers import AutoTokenizer
 from data.dataset import ITSMDataset
 from model.classifier import ITSMClassifier
 from training.labels import build_label_mapping, encode_labels
+from training.evaluate import evaluate_classifier
 
 logger = logging.getLogger(__name__)
 
@@ -168,10 +169,20 @@ def train_classifier(
             criterion=criterion,
         )
 
+        val_metrics = evaluate_classifier(
+                    model=model,
+                    dataloader=val_loader,
+                    device=device,
+                    criterion=criterion,
+                )
+
         history.append(
             {
                 "epoch": epoch + 1,
                 "train_loss": train_loss,
+                "val_loss": val_metrics["val_loss"],
+                "val_accuracy": val_metrics["val_accuracy"],
+                "val_macro_f1": val_metrics["val_macro_f1"],
             }
         )
 
@@ -180,6 +191,7 @@ def train_classifier(
             epoch + 1,
             config["num_epochs"],
             train_loss,
+            history,
         )
 
     return model, label_map, history

@@ -61,7 +61,7 @@ def main():
         "max_length": 128, # 256 for "full"
     }
     
-    # The "mode" determines size of datasets
+    # Mode determines size of datasets
     train_df = maybe_downsample(train_df, config["mode"])
     val_df = maybe_downsample(val_df, config["mode"])
 
@@ -82,9 +82,12 @@ def main():
     artifacts_dir = PROJECT_ROOT / "artifacts"
     logger.info("Exporting artifacts %s", artifacts_dir)
 
+    best_epoch_metrics = max(history, key=lambda x: x["val_macro_f1"])
+
     export_classifier_artifacts(
         model=model,
         label_map=label_map,
+        best_epoch_metrics=best_epoch_metrics,
         output_dir=artifacts_dir,
     )
 

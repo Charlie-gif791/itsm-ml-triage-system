@@ -1,21 +1,51 @@
+# training/evaluate.py
+from typing import Dict
 import torch
-from sklearn.metrics import f1_score
+from torch import nn
+from sklearn.metrics import accuracy_score, f1_score
+import logging
 
-def evaluate(model, loader, device):
+logger = logging.getLogger(__name__)
+
+
+@torch.no_grad()
+def evaluate_classifier(
+    model: torch.nn.Module,
+    dataloader,
+    device: torch.device,
+    criterion: nn.CrossEntropyLoss,
+) -> Dict[str, float]:
+    """
+    Evaluate classifier on validation data.
+    """
+
     model.eval()
+
+    val_total_loss = 0.0
     preds = []
     targets = []
 
-    with torch.no_grad():
-        for batch in loader:
-            input_ids = batch["input_ids"].to(device)
-            attention_mask = batch["attention_mask"].to(device)
-            labels = batch["labels"].to(device)
+    for batch in dataloader:
+        input_ids = batch["input_ids"].to(device)
+        attention_mask = batch["attention_mask"].to(device)
+        labels = batch["labels"].to(device)
 
-            logits = model(input_ids, attention_mask)
-            predictions = logits.argmax(dim=1)
+        logits = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+        )
 
-            preds.extend(predictions.cpu().numpy())
-            targets.extend(labels.cpu().numpy())
+        val_loss = criterion(logits, labels)
+        val_total_loss += val_loss.item()
+        predictions = logits.argmax(dim=1)
 
-    return f1_score(targets, preds, average="macro")
+        preds.extend(predictions.cpu().numpy())
+        targets.extend(labels.cpu().numpy())
+
+    val_avg_loss = val_total_loss / len(dataloader)
+
+    return {
+        "val_loss": val_avg_loss,
+        "val_accuracy": accuracy_score(targets, preds),
+        "val_macro_f1": f1_score(targets, preds, average="macro"),
+    }
