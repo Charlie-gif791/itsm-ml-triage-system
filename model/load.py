@@ -10,32 +10,23 @@ import json
 from pathlib import Path
 
 from model.classifier import ITSMClassifier
+from policy.decision import apply_decision
+from config import PROJECT_ROOT, THRESHOLD, DEVICE, MODEL_PATH
 
 logger = logging.getLogger(__name__)
 
 ENCODER_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-
-def predict(text: str, bundle: Dict) -> Dict:
-    """
-    Run inference on a single text input.
-
-    Returns:
-        {
-            "predicted_label": str,
-            "confidence": float,
-            "logits": List[float]
-        }
-    """
+def predict(
+        text: str, 
+        bundle: Dict, 
+        threshold: float = THRESHOLD,
+    ) -> Dict:
     model = bundle["model"]
     tokenizer = bundle["tokenizer"]
-    label_map = bundle["label_map"]
+    label_map = bundle["label_map"]          # label to id
     device = bundle["device"]
 
-    # -----------------------------
-    # Tokenize
-    # -----------------------------
     enc = tokenizer(
         text,
         truncation=True,
@@ -43,36 +34,31 @@ def predict(text: str, bundle: Dict) -> Dict:
         max_length=128,
         return_tensors="pt",
     )
-
     enc = {k: v.to(device) for k, v in enc.items()}
 
-    # -----------------------------
-    # Forward pass
-    # -----------------------------
     with torch.no_grad():
         logits = model(
             input_ids=enc["input_ids"],
             attention_mask=enc["attention_mask"],
         )
 
-    # -----------------------------
-    # Post-process
-    # -----------------------------
     probs = F.softmax(logits, dim=-1)
     confidence, pred_idx = torch.max(probs, dim=-1)
 
-    pred_idx = pred_idx.item()
-    confidence = confidence.item()
+    confidence = confidence[0].item()
+    pred_idx = pred_idx[0].item()
 
-    return {
-        "predicted_label": label_map[pred_idx],
-        "confidence": confidence,
-        "logits": logits.squeeze(0).tolist(),
-    }
+    decision = apply_decision(
+        predicted_label=label_map[pred_idx],
+        confidence=confidence,
+        threshold=THRESHOLD,
+    )
+
+    return decision
 
 def load_inference_bundle(
         label_map_path: Path,
-        device: str = "cpu", 
+        device: str = DEVICE, 
     ) -> Dict:
     """
     Load all artifacts required for inference.
@@ -108,9 +94,6 @@ def load_inference_bundle(
     encoder = AutoModel.from_pretrained(ENCODER_NAME)
     tokenizer = AutoTokenizer.from_pretrained(ENCODER_NAME)
 
-    for param in encoder.parameters():
-        param.requires_grad = False
-
     # -----------------------------
     # Build classifier
     # -----------------------------
@@ -123,7 +106,7 @@ def load_inference_bundle(
     # Load trained weights
     # -----------------------------
     state_dict = torch.load(
-        PROJECT_ROOT / "artifacts" / "classifier.pt",
+        PROJECT_ROOT / MODEL_PATH,
         map_location=device,
     )
     model.load_state_dict(state_dict)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Tuple
 
+import random
 import numpy as np
 import pandas as pd
 import torch
@@ -12,12 +13,19 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.class_weight import compute_class_weight
 from transformers import AutoTokenizer
 
+from config import USE_CLASS_WEIGHTS
 from data.dataset import ITSMDataset
 from model.classifier import ITSMClassifier
 from training.labels import build_label_mapping, encode_labels
 from training.evaluate import evaluate_classifier
 
 logger = logging.getLogger(__name__)
+
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 def train_one_epoch(
     model: nn.Module,
@@ -92,12 +100,18 @@ def train_classifier(
     # --------------------------------------------------
     # 2. Compute class weights
     # --------------------------------------------------
-    class_weights = compute_class_weight(
-        class_weight="balanced",
-        classes=np.unique(y_train),
-        y=y_train,
-    )
-    class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+    set_seed(42)
+
+    if USE_CLASS_WEIGHTS:
+        class_weights = compute_class_weight(
+            class_weight="balanced",
+            classes=np.unique(y_train),
+            y=y_train,
+        )
+        class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
+        criterion = nn.CrossEntropyLoss(class_weights)
+    else:
+        criterion = nn.CrossEntropyLoss()
 
     # --------------------------------------------------
     # 3. Tokenize text
@@ -147,8 +161,6 @@ def train_classifier(
         encoder=encoder,
         num_classes=num_classes,
     ).to(device)
-
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
     
     optimizer = optim.AdamW(
         model.parameters(),

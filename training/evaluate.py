@@ -2,7 +2,8 @@
 from typing import Dict
 import torch
 from torch import nn
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+import pandas as pd
 import logging
 
 logger = logging.getLogger(__name__)
