@@ -1,4 +1,3 @@
-# scripts/predict.py
 import torch
 from pathlib import Path
 from model.load import load_inference_bundle, predict

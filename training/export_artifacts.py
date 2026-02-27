@@ -1,4 +1,3 @@
-# training/export_artifacts.py
 import json
 import logging
 from pathlib import Path
