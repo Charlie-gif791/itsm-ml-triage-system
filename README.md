@@ -129,3 +129,10 @@ To retrain the model from scratch:
 ```bash
 python main.py --mode full
 ```
+
+## Dataset
+This project uses the publicly available Help Desk Tickets dataset:
+
+Abdellatif, Mohammad (2025), “Help Desk Tickets”, Mendeley Data, V1, doi: 10.17632/btm76zndnt.1
+
+The dataset consists of labeled IT service requests categorized into operational classes and exhibits significant class imbalance, motivating the modeling approach used in this project.
