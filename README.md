@@ -87,7 +87,7 @@ python -m tests.test_dataset
 
 ### Running The Inference API
 ```bash
-python -m uvicorn service.app:app --reload
+uvicorn service.app:app --host 0.0.0.0 --port 8000
 ```
 Visit:
 ```bash
@@ -113,6 +113,14 @@ Example response:
 The inference service can be deployed as a lightweight ML API using a container-style hosting platform such as Render.
 
 The deployed service loads the trained model artifacts at application startup and exposes a REST endpoint for real-time ticket classification.
+
+The inference service is deployed on Render as a FastAPI application.
+
+Production start command:
+
+```bash
+uvicorn service.app:app --host 0.0.0.0 --port 10000
+```
 
 **API Endpoint**
 

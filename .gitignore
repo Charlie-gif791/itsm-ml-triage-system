@@ -15,7 +15,6 @@ conda/
 .DS_Store
 
 # ML artifacts (generated)
-artifacts/
 models/
 *.pt
 *.npy
