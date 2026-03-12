@@ -108,19 +108,36 @@ Example response:
 }
 ```
 
- ### Deployment
+ ## Deployment
 
-The classifier is deployed as a FastAPI service on Render.
+The inference service can be deployed as a lightweight ML API using a container-style hosting platform such as Render.
 
-Endpoint:
-POST /predict
+The deployed service loads the trained model artifacts at application startup and exposes a REST endpoint for real-time ticket classification.
+
+**API Endpoint**
+
+POST `/predict`
 
 Example request:
+
 ```bash
 {
-  "text": "VPN connection failing"
+  "text": "User cannot connect to VPN"
 }
 ```
+
+Example response:
+
+```bash
+{
+  "predicted_label": "Network Support",
+  "confidence": 0.81,
+  "abstained": false
+}
+```
+
+The system loads the trained classifier and label mapping artifacts at service startup to avoid repeated model initialization and ensure low-latency inference.
+
 
 ## Repository Structure
 
