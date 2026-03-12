@@ -116,9 +116,11 @@ Endpoint:
 POST /predict
 
 Example request:
+```bash
 {
   "text": "VPN connection failing"
 }
+```
 
 ## Repository Structure
 
