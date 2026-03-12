@@ -108,6 +108,18 @@ Example response:
 }
 ```
 
+ ### Deployment
+
+The classifier is deployed as a FastAPI service on Render.
+
+Endpoint:
+POST /predict
+
+Example request:
+{
+  "text": "VPN connection failing"
+}
+
 ## Repository Structure
 
 - data/        Dataset loading and label handling
