@@ -4,7 +4,7 @@
 
 A production-structured machine learning system that classifies IT service tickets into operational categories with confidence-based abstention and API-based serving. Designed to mirror real-world ML systems, and emphasizes evaluation rigor under imbalance.
 
-### Live Demo
+## Live Demo
 
 API: https://itsm-ml-triage-system.onrender.com
 
