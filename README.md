@@ -6,9 +6,11 @@ A production-structured machine learning system that classifies IT service ticke
 
 ## Live Demo
 
-API: https://itsm-ml-triage-system.onrender.com
+Interactive API documentation: 
+https://itsm-ml-triage-system.onrender.com/docs
 
-DOCS: https://itsm-ml-triage-system.onrender.com/docs
+Base API endpoint: 
+https://itsm-ml-triage-system.onrender.com
 
 ## Problem & Challenges
 
