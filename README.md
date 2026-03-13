@@ -1,114 +1,112 @@
 # ITSM ML Triage System
 
-## Overview
+A production-structured machine learning system that classifies IT service tickets into operational categories. The system applies confidence-based abstention and serves predictions through a REST API, with an emphasis on evaluation rigor under class imbalance.
 
-A production-structured machine learning system that classifies IT service tickets into operational categories with confidence-based abstention and API-based serving. Designed to mirror real-world ML systems, and emphasizes evaluation rigor under imbalance.
+**Live demo:** [https://itsm-ml-triage-system.onrender.com/docs](https://itsm-ml-triage-system.onrender.com/docs)
 
-## Live Demo
+---
 
-Interactive API documentation: 
-https://itsm-ml-triage-system.onrender.com/docs
+## Problem & Motivation
 
-Base API endpoint: 
-https://itsm-ml-triage-system.onrender.com
+IT service ticket datasets are often heavily skewed toward a dominant class — in this case, "Ticket" — creating a realistic and challenging operational ML problem. A naive model achieves high accuracy while failing silently on minority classes.
 
-## Problem & Challenges
+Initial experiments exposed this failure mode directly:
 
-The dataset is heavily imbalanced toward the “Ticket” class, creating a realistic operational ML challenge. Early experiments showed high accuracy but poor minority-class performance, revealing majority-class collapse.
+- Accuracy of ~94% masked near-zero minority-class predictions
+- Macro F1 of ~0.32 revealed majority-class collapse
+- Confusion matrix confirmed the model was essentially ignoring minority classes
 
-- Initial runs achieved ~94% accuracy
-- Macro F1 ~0.32 exposed majority-class collapse
-- Confusion matrix showed near-zero minority predictions
-- Rebalancing strategy implemented (imbalance_ratio = 3)
-- Macro F1 selected as primary evaluation metric
+Addressing this required rethinking the evaluation criteria and rebalancing strategy before any architectural changes.
 
-## Architecture Overview
-
-### The System Is Structured Into Cleanly Separated Layers:
-
-training/ – Model optimization and evaluation
-model/ – Encoder and classifier definitions (pure ML logic)
-policy/ – Business rules (confidence thresholds, abstention)
-service/ – FastAPI inference layer
-artifacts/ – Exported model weights and label maps
-config.py – Centralized artifact and runtime configuration
-
-Model inference and business policy are intentionally separated to mirror production ML system design.
-
-### Features
-
-- End-to-end ML lifecycle (ingest → split → train → evaluate → export → serve)
-- Deterministic label mapping artifact
-- Confidence-based abstention policy
-- FastAPI inference service with Swagger UI
-- Smoke/dev/full training modes for reproducibility
-
-### Design Decisions
-
-- Label map persisted as artifact to guarantee deterministic inference
-- Model and policy layers separated to decouple statistical prediction from business rules
-- Config centralized to avoid hardcoded paths and ensure portability
-- Training modes implemented to balance iteration speed and full-model evaluation
+---
 
 ## Modeling Approach
 
-The system uses a lightweight transformer encoder with a classification head and emphasizes disciplined experimentation under class imbalance.
+The system uses a lightweight transformer encoder with a linear classification head, fine-tuned with a rebalancing strategy to counteract class imbalance.
 
-- Base encoder: all-MiniLM-L6-v2
-- Transformer encoder with linear classification head
-- Cross-entropy loss
-- Rebalancing via capped majority sampling
-- Dev vs full mode experimentation
-- Learning rate sweep (3e-5 vs 4e-5 vs 5e-5)
-- Selection criteria (macro F1 stability)
+| Component | Detail |
+|---|---|
+| Base encoder | `all-MiniLM-L6-v2` |
+| Classification head | Linear layer over encoder output |
+| Loss function | Cross-entropy |
+| Rebalancing | Capped majority sampling (`imbalance_ratio = 3`) |
+| Primary metric | Macro F1 (not accuracy) |
+| LR sweep | 3e-5, 4e-5, 5e-5 |
+| Selection criterion | Macro F1 stability across runs |
 
-## Final Results
+---
+
+## Results
 
 Full-mode training metrics:
 
-- Validation Accuracy: 0.857
-- Validation Macro F1: 0.424
+| Metric | Value |
+|---|---|
+| Validation Accuracy | 0.857 |
+| Validation Macro F1 | 0.424 |
 
-Accuracy alone is misleading due to class imbalance. Macro F1 is the primary evaluation metric. Minority-class detection improved substantially compared to initial collapsed baseline (~0 F1 for minority classes). Minority class F1 scores improved from ~0 in early runs to meaningful detection after rebalancing.
+Accuracy is not the primary signal here — Macro F1 is. Minority-class F1 improved from ~0 in the initial collapsed baseline to meaningful detection after rebalancing.
 
-## What I Would Improve Next
+---
 
-- Experiment with focal loss instead of sampling
-- Try weighted cross-entropy
-- Evaluate larger encoder backbone
-- Perform stratified k-fold validation
-- Explore threshold calibration for minority classes
+## Architecture
 
-## Running The Project
+The system is organized into cleanly separated layers, designed to mirror production ML systems:
 
-### Train The Model
+```
+training/    Model optimization and evaluation
+model/       Encoder and classifier definitions (pure ML logic)
+policy/      Business rules: confidence thresholds and abstention logic
+service/     FastAPI inference layer
+artifacts/   Exported model weights and label maps
+config.py    Centralized artifact and runtime configuration
+```
+
+Model inference and business policy are intentionally separated to decouple statistical prediction from operational rules.
+
+### Key Design Decisions
+
+- **Label map persisted as artifact** — guarantees deterministic inference across environments
+- **Policy layer isolated from model layer** — business rules can change without touching ML logic
+- **Centralized config** — eliminates hardcoded paths and improves portability
+- **Training modes (smoke / dev / full)** — balances iteration speed with full evaluation fidelity
+
+---
+
+## Running the Project
+
+### Train the Model
+
 ```bash
-python main.py --mode smoke
-python main.py --mode dev
-python main.py --mode full
+python main.py --mode smoke   # Fast sanity check
+python main.py --mode dev     # Reduced dataset, quick iteration
+python main.py --mode full    # Full training run
 ```
 
 ### Run Tests
+
 ```bash
 python -m tests.test_dataset
 ```
 
-### Running The Inference API
+### Start the Inference API
+
 ```bash
 uvicorn service.app:app --host 0.0.0.0 --port 8000
 ```
-Visit:
-```bash
-http://localhost:8000/docs
-```
-Submit:
-```bash
+
+Visit `http://localhost:8000/docs` for the Swagger UI.
+
+**Example request:**
+```json
+POST /predict
 {
   "text": "User cannot access VPN"
 }
 ```
-Example response:
-```bash
+
+**Example response:**
+```json
 {
   "predicted_label": "HD Service",
   "confidence": 0.82,
@@ -116,54 +114,62 @@ Example response:
 }
 ```
 
- ## Deployment
+---
 
-The inference service can be deployed as a lightweight ML API using a container-style hosting platform such as Render.
+## Deployment
 
-The deployed service loads the trained model artifacts at application startup and exposes a REST endpoint for real-time ticket classification.
+The inference service is deployed on Render as a FastAPI application. It loads trained model artifacts at startup to avoid repeated initialization and ensure low-latency inference.
 
-The inference service is deployed on Render as a FastAPI application.
-
-Production start command:
-
+**Production start command:**
 ```bash
 uvicorn service.app:app --host 0.0.0.0 --port 10000
 ```
 
-**API Endpoint**
-
-POST `/predict`
-
-Reference the above example submission and response.
-
-The system loads the trained classifier and label mapping artifacts at service startup to avoid repeated model initialization and ensure low-latency inference.
-
-
-## Repository Structure
-
-- data/        Dataset loading and label handling
-- model/       Model definitions and loading utilities
-- training/    Training loop and optimization logic
-- artifacts/   Generated training artifacts (label maps, weights)
-- tests/       Sanity checks and unit tests
+---
 
 ## Artifacts
 
-Training generates the following artifacts:
+Training produces two artifacts required for inference:
 
-- artifacts/label_map.json
-- artifacts/classifier.pt
+| Artifact | Purpose |
+|---|---|
+| `artifacts/label_map.json` | Deterministic label mapping |
+| `artifacts/classifier.pt` | Trained classifier weights |
 
-These are created during training and required for inference.
-Pretrained artifacts are included for immediate inference.
-To retrain the model from scratch:
+Pretrained artifacts are included for immediate inference. To retrain from scratch:
+
 ```bash
 python main.py --mode full
 ```
 
+---
+
+## Repository Structure
+
+```
+data/        Dataset loading and label handling
+model/       Model definitions and loading utilities
+training/    Training loop and optimization logic
+artifacts/   Generated artifacts (label maps, weights)
+tests/       Sanity checks and unit tests
+```
+
+---
+
+## What I Would Improve Next
+
+- Experiment with focal loss as an alternative to resampling
+- Evaluate weighted cross-entropy
+- Test a larger encoder backbone
+- Perform stratified k-fold validation
+- Explore per-class threshold calibration for minority classes
+
+---
+
 ## Dataset
+
 This project uses the publicly available Help Desk Tickets dataset:
 
-Abdellatif, Mohammad (2025), “Help Desk Tickets”, Mendeley Data, V1, doi: 10.17632/btm76zndnt.1
+> Abdellatif, Mohammad (2025). "Help Desk Tickets." Mendeley Data, V1. [doi: 10.17632/btm76zndnt.1](https://doi.org/10.17632/btm76zndnt.1)
 
-The dataset consists of labeled IT service requests categorized into operational classes and exhibits significant class imbalance, motivating the modeling approach used in this project.
+The dataset consists of labeled IT service requests with significant class imbalance, which directly motivates the modeling approach used here.
