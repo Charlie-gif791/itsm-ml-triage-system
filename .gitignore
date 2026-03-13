@@ -17,6 +17,7 @@ conda/
 # ML artifacts (generated)
 models/
 *.pt
+!artifacts/classifier.pt
 *.npy
 *.ckpt
 

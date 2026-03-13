@@ -9,10 +9,16 @@ from config import PROJECT_ROOT, DEVICE, LABEL_MAP_PATH, THRESHOLD
 
 app = FastAPI(title="ITSM ML Triage API")
 
-bundle = load_inference_bundle(
-    label_map_path=PROJECT_ROOT / LABEL_MAP_PATH,
-    device=DEVICE,
-)
+bundle = None
+
+def get_bundle():
+    global bundle
+    if bundle is None:
+        bundle = load_inference_bundle(
+            label_map_path=PROJECT_ROOT / LABEL_MAP_PATH,
+            device=DEVICE,
+        )
+    return bundle
 
 class TicketRequest(BaseModel):
     text: str
@@ -26,7 +32,7 @@ class PredictionResponse(BaseModel):
 def classify_ticket(request: TicketRequest):
     raw = predict(
         request.text,
-        bundle=bundle,
+        bundle=get_bundle(),
     )
 
     final = apply_decision(
