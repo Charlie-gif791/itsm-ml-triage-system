@@ -134,23 +134,7 @@ uvicorn service.app:app --host 0.0.0.0 --port 10000
 
 POST `/predict`
 
-Example request:
-
-```bash
-{
-  "text": "User cannot connect to VPN"
-}
-```
-
-Example response:
-
-```bash
-{
-  "predicted_label": "Network Support",
-  "confidence": 0.81,
-  "abstained": false
-}
-```
+Reference the above example submission and response.
 
 The system loads the trained classifier and label mapping artifacts at service startup to avoid repeated model initialization and ensure low-latency inference.
 
